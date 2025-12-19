@@ -12,7 +12,6 @@ def home(request):
     """Render the home page with the prediction UI"""
     return render(request, 'predictor/home.html')
 
-
 @api_view(['POST'])
 def predict_api(request):
     """API endpoint for single tweet or multiple tweets prediction"""

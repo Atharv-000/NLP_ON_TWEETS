@@ -1,8 +1,10 @@
+Django==6.0
+djangorestframework
+gunicorn
 numpy
 pandas
-matplotlib
 scikit-learn
 tensorflow
-keras
 nltk
 joblib
+python-dotenv
