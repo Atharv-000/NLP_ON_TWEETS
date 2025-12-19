@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import predict_api, predict_csv_api
+from .views import home, predict_api, predict_csv_api
 
 urlpatterns = [
     path('predict/', predict_api),
