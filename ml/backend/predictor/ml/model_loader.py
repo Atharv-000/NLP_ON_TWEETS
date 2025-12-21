@@ -12,23 +12,23 @@ model = None
 tokenizer = None
 
 try:
-    print("🔹 Loading LSTM model...")
+    print("[INFO] Loading LSTM model...")
     if not os.path.exists(MODEL_PATH):
         raise FileNotFoundError(f"Model file not found at: {MODEL_PATH}")
     model = load_model(MODEL_PATH)
-    print("✅ Model loaded successfully")
+    print("[SUCCESS] Model loaded successfully")
 except Exception as e:
-    print(f"❌ Error loading model: {str(e)}")
+    print(f"[ERROR] Error loading model: {str(e)}")
     raise
 
 try:
-    print("🔹 Loading tokenizer...")
+    print("[INFO] Loading tokenizer...")
     if not os.path.exists(TOKENIZER_PATH):
         raise FileNotFoundError(f"Tokenizer file not found at: {TOKENIZER_PATH}")
     tokenizer = joblib.load(TOKENIZER_PATH)
-    print("✅ Tokenizer loaded successfully")
+    print("[SUCCESS] Tokenizer loaded successfully")
 except Exception as e:
-    print(f"❌ Error loading tokenizer: {str(e)}")
+    print(f"[ERROR] Error loading tokenizer: {str(e)}")
     raise
 
-print("✅ Model & tokenizer ready for predictions")
+print("[SUCCESS] Model & tokenizer ready for predictions")

@@ -12,6 +12,7 @@ def home(request):
     """Render the home page with the prediction UI"""
     return render(request, 'predictor/home.html')
 
+@csrf_exempt
 @api_view(['POST'])
 def predict_api(request):
     """API endpoint for single tweet or multiple tweets prediction"""
@@ -41,7 +42,7 @@ def predict_api(request):
         return Response({"results": results})
     except Exception as e:
         error_trace = traceback.format_exc()
-        print(f"❌ Error in predict_api: {str(e)}")
+        print(f"[ERROR] Error in predict_api: {str(e)}")
         print(f"Traceback: {error_trace}")
         return Response(
             {"error": f"Prediction error: {str(e)}"},
@@ -49,6 +50,7 @@ def predict_api(request):
         )
 
 
+@csrf_exempt
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
 def predict_csv_api(request):
