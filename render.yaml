@@ -4,8 +4,9 @@ services:
     env: python
     plan: free
     buildCommand: |
-      pip install --upgrade pip setuptools wheel packaging
-      pip install --only-binary :all: -r requirements.txt || pip install -r requirements.txt
+      pip install --upgrade pip setuptools wheel
+      pip install tensorflow==2.15.0
+      pip install -r requirements.txt
       cd ml/backend
       python manage.py collectstatic --noinput
     startCommand: cd ml/backend && gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT
