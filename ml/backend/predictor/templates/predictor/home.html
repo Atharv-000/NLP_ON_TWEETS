@@ -1,525 +1,572 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NLP Tweet Disaster Prediction</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NLP on Tweets — AI-powered disaster tweet classifier using LSTM deep learning.">
+  <title>NLP on Tweets — Disaster Classifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+    :root {
+      --bg:       #04080f;
+      --bg2:      #080e1a;
+      --surface:  rgba(255,255,255,0.04);
+      --border:   rgba(255,255,255,0.07);
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --red:      #f87171;
+      --red-bg:   rgba(248,113,113,0.1);
+      --red-bdr:  rgba(248,113,113,0.25);
+      --green:    #4ade80;
+      --green-bg: rgba(74,222,128,0.1);
+      --green-bdr:rgba(74,222,128,0.25);
+      --accent:   #818cf8;
+      --accent2:  #c084fc;
+      --card:     rgba(10,15,30,0.75);
+    }
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
+    html { scroll-behavior: smooth; }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
+    /* ── Orb backgrounds ── */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(130px);
+      opacity: 0.1;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 650px; height: 650px;
+      background: radial-gradient(circle, #818cf8, transparent 70%);
+      top: -200px; left: -200px;
+    }
+    body::after {
+      width: 550px; height: 550px;
+      background: radial-gradient(circle, #c084fc, transparent 70%);
+      bottom: -150px; right: -100px;
+    }
 
-        .header p {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
+    /* ── Layout ── */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
 
-        .content {
-            padding: 40px;
-        }
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 3rem; }
 
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #e0e0e0;
-        }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.3rem 0.9rem;
+      background: rgba(129,140,248,0.1);
+      border: 1px solid rgba(129,140,248,0.25);
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.25rem;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
 
-        .tab {
-            padding: 15px 30px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.1em;
-            color: #666;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-        }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #e2e8f0 0%, #818cf8 50%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.75rem;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.65;
+    }
 
-        .tab:hover {
-            color: #667eea;
-        }
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      padding: 1.75rem;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+      margin-bottom: 1.5rem;
+      transition: border-color 0.3s;
+    }
+    .card:focus-within { border-color: rgba(129,140,248,0.3); }
 
-        .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-            font-weight: bold;
-        }
+    .card-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .card-label-icon {
+      width: 28px; height: 28px;
+      border-radius: 0.45rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
+    }
+    .icon-purple { background: rgba(129,140,248,0.15); border: 1px solid rgba(129,140,248,0.2); }
+    .icon-blue   { background: rgba(56,189,248,0.12);  border: 1px solid rgba(56,189,248,0.2);  }
 
-        .tab-content {
-            display: none;
-        }
+    /* ── Textarea ── */
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      padding: 0.85rem 1rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      border-radius: 0.7rem;
+      border: 1px solid var(--border);
+      background: rgba(0,0,0,0.5);
+      color: var(--text);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    textarea::placeholder { color: var(--muted); }
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(129,140,248,0.12);
+    }
 
-        .tab-content.active {
-            display: block;
-        }
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.7rem 1.5rem;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 0.65rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 0.9rem;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #04080f;
+      box-shadow: 0 8px 24px rgba(129,140,248,0.3);
+    }
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 12px 30px rgba(129,140,248,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-secondary {
+      background: rgba(56,189,248,0.12);
+      border: 1px solid rgba(56,189,248,0.25);
+      color: #38bdf8;
+    }
+    .btn-secondary:hover { background: rgba(56,189,248,0.18); transform: translateY(-1px); }
 
-        .form-group {
-            margin-bottom: 25px;
-        }
+    /* ── File input ── */
+    .file-zone {
+      border: 2px dashed rgba(56,189,248,0.2);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .file-zone:hover { border-color: rgba(56,189,248,0.4); background: rgba(56,189,248,0.04); }
+    .file-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .file-zone-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    .file-zone-text { color: var(--muted); font-size: 0.85rem; }
+    .file-zone-text strong { color: #38bdf8; }
+    .file-name { font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--accent); margin-top: 0.4rem; }
 
-        label {
-            display: block;
-            margin-bottom: 10px;
-            font-weight: 600;
-            color: #333;
-            font-size: 1.1em;
-        }
+    /* ── Error alert ── */
+    .alert-error {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.25);
+      border-radius: 0.75rem;
+      color: var(--red);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
 
-        textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 1em;
-            font-family: inherit;
-            resize: vertical;
-            transition: border-color 0.3s;
-        }
+    /* ── Results ── */
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .results-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .results-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.65rem;
+      background: rgba(129,140,248,0.1);
+      border: 1px solid rgba(129,140,248,0.2);
+      border-radius: 999px;
+      color: var(--accent);
+    }
 
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+    .result-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 1.1rem 1.35rem;
+      margin-bottom: 0.85rem;
+      backdrop-filter: blur(12px);
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      animation: slideIn 0.35s ease both;
+      position: relative;
+      overflow: hidden;
+    }
+    .result-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+    }
+    .result-card.disaster {
+      border-color: var(--red-bdr);
+    }
+    .result-card.disaster::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #f87171, #fb923c);
+    }
+    .result-card.safe {
+      border-color: var(--green-bdr);
+    }
+    .result-card.safe::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #4ade80, #34d399);
+    }
 
-        input[type="file"] {
-            width: 100%;
-            padding: 15px;
-            border: 2px dashed #e0e0e0;
-            border-radius: 10px;
-            background: #f9f9f9;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
+    @keyframes slideIn {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
 
-        input[type="file"]:hover {
-            border-color: #667eea;
-            background: #f0f0f0;
-        }
+    .result-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.8rem;
+    }
+    .result-tweet {
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: #cbd5e0;
+      flex: 1;
+      font-family: 'DM Mono', monospace;
+    }
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .badge-disaster {
+      background: var(--red-bg);
+      border: 1px solid var(--red-bdr);
+      color: var(--red);
+    }
+    .badge-safe {
+      background: var(--green-bg);
+      border: 1px solid var(--green-bdr);
+      color: var(--green);
+    }
 
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px 40px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            width: 100%;
-        }
+    /* ── Confidence bar ── */
+    .conf-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .conf-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      white-space: nowrap;
+      font-family: 'DM Mono', monospace;
+    }
+    .conf-track {
+      flex: 1;
+      height: 5px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .conf-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    }
+    .fill-disaster { background: linear-gradient(90deg, #f87171, #fb923c); }
+    .fill-safe     { background: linear-gradient(90deg, #4ade80, #34d399); }
+    .conf-pct {
+      font-size: 0.72rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      min-width: 36px;
+      text-align: right;
+    }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
-        }
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .stat-total  { background: rgba(129,140,248,0.1); border:1px solid rgba(129,140,248,0.2); color: var(--accent); }
+    .stat-dis    { background: var(--red-bg);         border:1px solid var(--red-bdr);         color: var(--red); }
+    .stat-safe   { background: var(--green-bg);       border:1px solid var(--green-bdr);       color: var(--green); }
 
-        .btn:active {
-            transform: translateY(0);
-        }
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 2rem 0;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
 
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      margin-top: 4rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
 
-        .results {
-            margin-top: 30px;
-            display: none;
-        }
-
-        .results.show {
-            display: block;
-        }
-
-        .result-item {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border-left: 4px solid #667eea;
-        }
-
-        .result-item.disaster {
-            border-left-color: #e74c3c;
-            background: #fee;
-        }
-
-        .result-item.non-disaster {
-            border-left-color: #27ae60;
-            background: #efe;
-        }
-
-        .result-tweet {
-            font-size: 1.1em;
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .result-prediction {
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: 600;
-            margin-right: 10px;
-        }
-
-        .result-prediction.disaster {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .result-prediction.non-disaster {
-            background: #27ae60;
-            color: white;
-        }
-
-        .result-confidence {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .error {
-            background: #fee;
-            color: #c33;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border-left: 4px solid #e74c3c;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            display: none;
-        }
-
-        .loading.show {
-            display: block;
-        }
-
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .info-box {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2196f3;
-        }
-
-        .info-box p {
-            margin: 5px 0;
-            color: #1976d2;
-        }
-    </style>
+    @media (max-width: 600px) {
+      .result-top { flex-direction: column; align-items: flex-start; }
+      .stats-bar  { gap: 0.6rem; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚨 Tweet Disaster Predictor</h1>
-            <p>AI-powered Natural Language Processing for Disaster Detection</p>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge"><span class="badge-dot"></span> LSTM · Deep Learning · NLP</div>
+    <h1>NLP on Tweets</h1>
+    <p class="subtitle">AI-powered disaster tweet classifier. Enter tweets or upload a CSV to detect real disaster signals from social media noise.</p>
+  </div>
+
+  <!-- Error -->
+  {% if error %}
+  <div class="alert-error">
+    <span>⚠️</span>
+    <span>{{ error }}</span>
+  </div>
+  {% endif %}
+
+  <!-- Tweet Input Form -->
+  <div class="card">
+    <div class="card-label">
+      <span class="card-label-icon icon-purple">🧠</span>
+      Analyze Tweets
+    </div>
+    <form method="POST" id="tweet-form">
+      {% csrf_token %}
+      <textarea
+        name="tweets"
+        id="tweet-input"
+        placeholder="Enter one tweet per line…&#10;e.g. Forest fire spreading across California hills&#10;e.g. I'm on fire at this party tonight lol"
+      ></textarea>
+      <button class="btn btn-primary" type="submit" name="text_submit" id="submit-btn">
+        <span id="btn-text">⚡ Classify Tweets</span>
+      </button>
+    </form>
+  </div>
+
+  <div class="divider">or upload a CSV</div>
+
+  <!-- CSV Upload Form -->
+  <div class="card">
+    <div class="card-label">
+      <span class="card-label-icon icon-blue">📂</span>
+      Batch CSV Upload
+    </div>
+    <form method="POST" enctype="multipart/form-data" id="csv-form">
+      {% csrf_token %}
+      <div class="file-zone" id="file-zone">
+        <input type="file" name="csv_file" id="csv-file" accept=".csv">
+        <div class="file-zone-icon">📋</div>
+        <div class="file-zone-text">
+          <strong>Click to browse</strong> or drag & drop your CSV
         </div>
+        <div class="file-name" id="file-name"></div>
+      </div>
+      <button class="btn btn-secondary" type="submit" name="csv_submit">
+        📊 Classify CSV
+      </button>
+    </form>
+    <p style="font-size:0.78rem;color:var(--muted);margin-top:0.75rem;">CSV must have a <code style="color:var(--accent);background:rgba(129,140,248,0.1);padding:0.1rem 0.4rem;border-radius:0.3rem;">text</code> column containing the tweet text.</p>
+  </div>
 
-        <div class="content">
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('single')">Single Tweet</button>
-                <button class="tab" onclick="switchTab('csv')">CSV Upload</button>
-            </div>
+  <!-- Results -->
+  {% if results %}
+  <div id="results-section">
+    {% with total=results|length dis=results|dictsort:"prediction"|length %}
+    {% endwith %}
 
-            <!-- Single Tweet Tab -->
-            <div id="single-tab" class="tab-content active">
-                <div class="info-box">
-                    <p><strong>📝 Instructions:</strong> Enter a tweet text below and click "Predict" to analyze if it's about a disaster.</p>
-                </div>
-                <form id="single-form" onsubmit="predictSingle(event)">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="tweet">Tweet Text:</label>
-                        <textarea id="tweet" name="tweet" rows="4" placeholder="Enter your tweet here... (e.g., 'Forest fire near La Ronge Sask. Canada')" required></textarea>
-                    </div>
-                    <button type="submit" class="btn">🔍 Predict</button>
-                </form>
-            </div>
-
-            <!-- CSV Upload Tab -->
-            <div id="csv-tab" class="tab-content">
-                <div class="info-box">
-                    <p><strong>📄 Instructions:</strong> Upload a CSV file with a 'text' column containing tweets. The file will be processed and predictions will be shown.</p>
-                    <p><strong>Format:</strong> Your CSV must have a column named 'text' with tweet data.</p>
-                </div>
-                <form id="csv-form" onsubmit="predictCSV(event)" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <label for="csv-file">CSV File:</label>
-                        <input type="file" id="csv-file" name="file" accept=".csv" required>
-                    </div>
-                    <button type="submit" class="btn">📤 Upload & Predict</button>
-                </form>
-            </div>
-
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p style="margin-top: 10px;">Processing your request...</p>
-            </div>
-
-            <div id="error-message"></div>
-
-            <div class="results" id="results">
-                <h2 style="margin-bottom: 20px; color: #333;">📊 Prediction Results</h2>
-                <div id="results-content"></div>
-            </div>
-        </div>
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-chip stat-total">🔢 {{ results|length }} tweet{{ results|length|pluralize }}</div>
+      <div class="stat-chip stat-dis">🔴 Disaster: {% for r in results %}{% if r.prediction == "Disaster" %}✓{% endif %}{% endfor %}</div>
+      <div class="stat-chip stat-safe">🟢 Safe: {% for r in results %}{% if r.prediction == "Non-Disaster" %}✓{% endif %}{% endfor %}</div>
     </div>
 
-    <script>
-        function switchTab(tab) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.querySelectorAll('.tab').forEach(tabBtn => {
-                tabBtn.classList.remove('active');
-            });
+    <div class="results-header">
+      <div class="results-title">
+        <span>📊</span> Prediction Results
+      </div>
+      <span class="results-count">{{ results|length }} analysed</span>
+    </div>
 
-            // Show selected tab
-            if (tab === 'single') {
-                document.getElementById('single-tab').classList.add('active');
-                document.querySelectorAll('.tab')[0].classList.add('active');
-            } else {
-                document.getElementById('csv-tab').classList.add('active');
-                document.querySelectorAll('.tab')[1].classList.add('active');
-            }
+    {% for r in results %}
+    <div class="result-card {% if r.prediction == 'Disaster' %}disaster{% else %}safe{% endif %}"
+         style="animation-delay: {{ forloop.counter0 }}00ms">
+      <div class="result-top">
+        <div class="result-tweet">"{{ r.tweet }}"</div>
+        {% if r.prediction == "Disaster" %}
+        <span class="result-badge badge-disaster">🔴 Disaster</span>
+        {% else %}
+        <span class="result-badge badge-safe">🟢 Safe</span>
+        {% endif %}
+      </div>
+      <div class="conf-row">
+        <span class="conf-label">Confidence</span>
+        <div class="conf-track">
+          <div class="conf-fill {% if r.prediction == 'Disaster' %}fill-disaster{% else %}fill-safe{% endif %}"
+               style="width: {% if r.prediction == 'Disaster' %}{{ r.confidence|floatformat:0 }}{% else %}{% widthratio r.confidence 1 100 %}{% endif %}%">
+          </div>
+        </div>
+        <span class="conf-pct">{{ r.confidence|floatformat:2 }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
-            // Clear results
-            document.getElementById('results').classList.remove('show');
-            document.getElementById('error-message').innerHTML = '';
-        }
+  <footer class="footer">
+    <p>Powered by LSTM · Trained on Kaggle NLP Disaster Tweets Dataset</p>
+  </footer>
 
-        function showError(message) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.innerHTML = `<div class="error">❌ ${message}</div>`;
-            document.getElementById('results').classList.remove('show');
-        }
+</div>
 
-        function showLoading(show) {
-            document.getElementById('loading').classList.toggle('show', show);
-        }
+<script>
+  // Show file name when selected
+  const fileInput = document.getElementById('csv-file');
+  const fileName  = document.getElementById('file-name');
+  if (fileInput) {
+    fileInput.addEventListener('change', () => {
+      fileName.textContent = fileInput.files[0]?.name || '';
+    });
+  }
 
-        function displayResults(results) {
-            const resultsDiv = document.getElementById('results-content');
-            resultsDiv.innerHTML = '';
+  // Loading state on tweet form submit
+  const tweetForm = document.getElementById('tweet-form');
+  const submitBtn = document.getElementById('submit-btn');
+  const btnText   = document.getElementById('btn-text');
+  if (tweetForm) {
+    tweetForm.addEventListener('submit', () => {
+      btnText.textContent = 'Analyzing…';
+      submitBtn.disabled = true;
+    });
+  }
 
-            if (!results || results.length === 0) {
-                showError('No results to display');
-                return;
-            }
-
-            results.forEach((result, index) => {
-                const item = document.createElement('div');
-                item.className = `result-item ${result.prediction.toLowerCase().replace(' ', '-')}`;
-                
-                const predictionClass = result.prediction === 'Disaster' ? 'disaster' : 'non-disaster';
-                const emoji = result.prediction === 'Disaster' ? '🚨' : '✅';
-                
-                item.innerHTML = `
-                    <div class="result-tweet"><strong>${index + 1}.</strong> ${result.tweet}</div>
-                    <div>
-                        <span class="result-prediction ${predictionClass}">${emoji} ${result.prediction}</span>
-                        <span class="result-confidence">Confidence: ${(result.confidence * 100).toFixed(2)}%</span>
-                    </div>
-                `;
-                resultsDiv.appendChild(item);
-            });
-
-            document.getElementById('results').classList.add('show');
-            document.getElementById('error-message').innerHTML = '';
-        }
-
-        async function predictSingle(event) {
-            event.preventDefault();
-            showLoading(true);
-            document.getElementById('error-message').innerHTML = '';
-
-            const tweet = document.getElementById('tweet').value.trim();
-            
-            if (!tweet) {
-                showError('Please enter a tweet');
-                showLoading(false);
-                return;
-            }
-
-            try {
-                const csrfToken = getCookie('csrftoken');
-                const response = await fetch('/api/predict/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken || ''
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ tweets: [tweet] })
-                });
-
-                // Check if response is JSON
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    const text = await response.text();
-                    showLoading(false);
-                    console.error('Non-JSON response:', text.substring(0, 200));
-                    showError(`Server returned HTML instead of JSON. Status: ${response.status}. Check server logs.`);
-                    return;
-                }
-
-                const data = await response.json();
-                showLoading(false);
-
-                if (!response.ok) {
-                    showError(data.error || `Error ${response.status}: ${response.statusText}`);
-                    console.error('API Error:', data);
-                    return;
-                }
-
-                if (data.results && Array.isArray(data.results) && data.results.length > 0) {
-                    displayResults(data.results);
-                } else {
-                    showError(data.error || 'No results returned from the server. Check console for details.');
-                    console.error('No results in response:', data);
-                }
-            } catch (error) {
-                showLoading(false);
-                console.error('Fetch error:', error);
-                showError('Network error: ' + error.message);
-            }
-        }
-
-        async function predictCSV(event) {
-            event.preventDefault();
-            showLoading(true);
-            document.getElementById('error-message').innerHTML = '';
-
-            const fileInput = document.getElementById('csv-file');
-            const file = fileInput.files[0];
-
-            if (!file) {
-                showError('Please select a CSV file');
-                showLoading(false);
-                return;
-            }
-
-                const formData = new FormData();
-                formData.append('file', file);
-
-                try {
-                    const csrfToken = getCookie('csrftoken');
-                    const response = await fetch('/api/predict-csv/', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': csrfToken || ''
-                        },
-                        credentials: 'same-origin',
-                        body: formData
-                    });
-
-                    // Check if response is JSON
-                    const contentType = response.headers.get("content-type");
-                    if (!contentType || !contentType.includes("application/json")) {
-                        const text = await response.text();
-                        showLoading(false);
-                        console.error('Non-JSON response:', text.substring(0, 200));
-                        showError(`Server returned HTML instead of JSON. Status: ${response.status}. Check server logs.`);
-                        return;
-                    }
-
-                    const data = await response.json();
-                    showLoading(false);
-
-                    if (!response.ok) {
-                        showError(data.error || `Error ${response.status}: ${response.statusText}`);
-                        console.error('API Error:', data);
-                        return;
-                    }
-
-                    if (data.results && Array.isArray(data.results) && data.results.length > 0) {
-                        displayResults(data.results);
-                    } else {
-                        showError(data.error || 'No results returned from the server. Check console for details.');
-                        console.error('No results in response:', data);
-                    }
-                } catch (error) {
-                    showLoading(false);
-                    console.error('Fetch error:', error);
-                    showError('Network error: ' + error.message);
-                }
-        }
-
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            // If cookie not found, try to get from hidden input (CSRF token)
-            if (!cookieValue) {
-                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
-                if (csrfInput) {
-                    cookieValue = csrfInput.value;
-                }
-            }
-            return cookieValue;
-        }
-    </script>
+  // Scroll to results if present
+  const results = document.getElementById('results-section');
+  if (results) {
+    setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+  }
+</script>
 </body>
 </html>
-
